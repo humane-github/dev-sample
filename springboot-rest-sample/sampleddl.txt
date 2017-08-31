@@ -1,0 +1,7 @@
+  id NUMBER not null
+  , name VARCHAR2(64)
+  , constraint NEW_ENTITY1_PKC primary key (id)
+) ;
+
+comment on column NEW_ENTITY1.id is 'ID';
+comment on column NEW_ENTITY1.name is '–¼‘O';

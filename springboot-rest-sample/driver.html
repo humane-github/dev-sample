@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fetch/2.0.3/fetch.min.js"></script>
+    <script src="https://www.promisejs.org/polyfills/promise-6.1.0.min.js"></script>
+  </head>
+  <body>
+    <form name="form">
+      <select name="apiName"></select>
+      <p>
+        <span>入力データ：</span>
+        <textarea name="inParam" style="width: 100%; height: 160px;"></textarea>
+      </p>
+      <button onclick="onSend()" type="button">送信</button>
+      <p>
+        <span>出力データ：</span>
+        <textarea name="outParam" style="width: 100%; height: 160px;"></textarea>
+      </p>
+    </form>
+    <script>
+      
+      var apiMap = getApiMap();
+      addName(apiMap);
+      
+      
+      // プルダウンに名前を追加
+      function addName(apiMap) {
+        Object.keys(apiMap).forEach(function(name) {
+          var opt = document.createElement('option');
+          opt.value = name;
+          opt.innerText = name;
+          form.apiName.appendChild(opt);
+        });
+      };
+      
+      // 名前選択時の処理
+      form.apiName.onchange = function() {
+        form.inParam.value = JSON.stringify(apiMap[this.value].data, null, "    ");
+      };
+      form.apiName.onchange();
+      
+      // 送信ボタン押下時の処理
+      function onSend() {
+        var api = apiMap[form.apiName.value];
+        doFetch(api).then(getData(api)).then(showData(api));
+      };
+      
+      // 送信処理
+      function doFetch(api) {
+      
+        var url = api.url;
+        var header = new Headers();
+        var options = {};
+      
+        switch (api.method) {
+        
+        // POSTの場合
+        case 'POST':
+          header.append("Content-Type", "application/json; charset=utf-8");
+          options = {method: "POST", body: JSON.stringify(api.data), headers: header};
+          break;
+        
+        // その他は後で追加
+        default:
+          throw "不正なメソッド";
+        }
+        
+        return fetch(url, options);
+      };
+      
+      // レスポンスデータ取得処理
+      function getData(api) {
+        
+        var getDataFn = null;
+        switch (api.resType) {
+        
+          // JSON形式の場合
+          case 'JSON':
+            getDataFn = function(response) {
+              return response.json();
+            };
+            break;
+          
+          // その他は後で追加
+          default:
+            throw "不正なレスポンスタイプ";
+        }
+        return getDataFn;
+      };
+      
+      // データ内容を表示する処理
+      function showData(api) {
+        
+        var showFn = null;
+        switch (api.resType) {
+        
+        // JSON形式の場合
+        case 'JSON':
+          showFn = function(json) {
+            form.outParam.value = JSON.stringify(json, null, "    ");
+          };
+          break;
+        
+        // その他は後で追加
+        default:
+          throw "不正なレスポンスタイプ";
+        
+        }
+        return showFn;
+      };
+      
+      // API情報の一覧を取得
+      function getApiMap() {
+        var baseUrl = "http://localhost:8081/testapp";
+        var apiMap = {};
+        apiMap["HelloWorld"] = {"url": baseUrl + "/helloworld", "method": "POST", "resType": "JSON", "data": {id: "xxxxxxxxx", name: "yyy"}};
+        apiMap["HelloWorld2"] = {"url": baseUrl + "/helloworld2", "method": "POST", "resType": "JSON", "data": {id: "xxx2", name: "yyy2"}};
+        return apiMap;
+      }
+    </script>
+  </body>
+</html>

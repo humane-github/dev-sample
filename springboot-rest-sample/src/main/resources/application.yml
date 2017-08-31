@@ -1,0 +1,37 @@
+spring:
+    profiles:
+        active: dev
+    application:
+        name: testapp
+    http:
+        multipart:
+            max-file-size: 10MB
+    datasource:
+        username: postgres
+        password: postgres
+        url: jdbc:postgresql://localhost:5432/sampledb
+        driverClassName: org.postgresql.Driver
+
+server:
+    context-path: /testapp
+    port: 8081
+
+---
+spring:
+    profiles: dev
+
+    datasource:
+        username: postgres
+        password: postgres
+        url: jdbc:postgresql://localhost:5432/sampledb
+        driverClassName: org.postgresql.Driver
+
+---
+spring:
+    profiles: production
+
+    datasource:
+        username: postgres
+        password: postgres
+        url: jdbc:postgresql://localhost:5432/sampledb
+        driverClassName: org.postgresql.Driver

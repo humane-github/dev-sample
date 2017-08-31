@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- 環境依存の設定 -->
+<!DOCTYPE configuration [
+
+    <!-- アプリケーションのパッケージ -->
+    <!ENTITY appPackage "jp.co.humane.sample">
+
+    <!-- アプリケーションのログレベル：INFO／DEBUG  -->
+    <!ENTITY appLogLevel "DEBUG">
+
+    <!-- ログ出力先：環境変数 LOG_FILE に出力 -->
+    <!ENTITY logFile "${LOG_FILE:-.}/helloworld.log">
+
+    <!-- ログレベル：INFO／DEBUG -->
+    <!ENTITY logLevel "INFO">
+
+    <!-- アペンダー：CONSOLE／FILE -->
+    <!ENTITY appender "CONSOLE">
+
+]>
+
+
+<configuration>
+
+    <!-- Spring Bootデフォルトの設定を読み込む -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
+
+    <!-- ファイル出力設定 -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+        <file>${LOG_FILE}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_FILE}.%d{yyyyMMdd}.log</fileNamePattern>
+        </rollingPolicy>
+    </appender>
+
+    <!-- ログファイル名 -->
+    <property name="LOG_FILE" value="&logFile;"/>
+
+    <!-- Spring Bootデフォルトのコンソール出力設定を読み込む -->
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
+
+    <!-- Spring Bootデフォルトのファイル出力設定を読み込む -->
+    <include resource="org/springframework/boot/logging/logback/file-appender.xml" />
+
+    <!-- アプリケーションのログレベル -->
+    <logger name="&appPackage;" level="&appLogLevel;"/>
+
+    <!-- Spring Bootのログレベル -->
+    <logger name="org.springframework.boot" level="WARN"/>
+
+	<!-- mybatisのログレベル -->
+    <logger name="org.apache.ibatis" level="INFO"/>
+
+    <root level="&logLevel;">
+        <appender-ref ref="&appender;" />
+    </root>
+
+</configuration>
