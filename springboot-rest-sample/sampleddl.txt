@@ -1,7 +1,8 @@
-  id NUMBER not null
-  , name VARCHAR2(64)
+create table account(
+  id INTEGER not null
+  , name VARCHAR(64)
   , constraint NEW_ENTITY1_PKC primary key (id)
 ) ;
 
-comment on column NEW_ENTITY1.id is 'ID';
-comment on column NEW_ENTITY1.name is 'ñºëO';
+comment on column account.id is 'ID';
+comment on column account.name is 'ÂêçÂâç';
