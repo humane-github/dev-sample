@@ -24,7 +24,9 @@ http.createServer(function(req, res) {
     response(req, res, data);
   });
     
-}).listen(8081, '127.0.0.1');
+}).listen(8081);
+
+console.log('listening 127.0.0.1:8081');
 
 function responseJson(res, data) {
   res.setHeader('Access-Control-Allow-Origin', '*');
