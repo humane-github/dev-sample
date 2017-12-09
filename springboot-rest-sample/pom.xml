@@ -68,8 +68,22 @@
     </dependencies>
 
     <build>
+
+        <!-- warのファイル名をプロジェクト名に設定 -->
+        <finalName>${project.name}</finalName>
+
         <plugins>
+
+            <!-- bashで実行可能なwarファイルを作成 -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <executable>true</executable>
+                </configuration>
+            </plugin>
         </plugins>
+
     </build>
 
   <repositories>
