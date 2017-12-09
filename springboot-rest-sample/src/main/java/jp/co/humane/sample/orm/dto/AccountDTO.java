@@ -1,6 +1,8 @@
 package jp.co.humane.sample.orm.dto;
 
-public class AccountDTO {
+import jp.co.humane.sample.common.dto.BaseDTO;
+
+public class AccountDTO extends BaseDTO {
 
     /** Id */
     private Integer id = null;

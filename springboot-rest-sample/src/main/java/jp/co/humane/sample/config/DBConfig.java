@@ -19,9 +19,16 @@ public class DBConfig {
 
     @Bean
     public SqlSessionFactory sqlSessionFactory(DataSource dataSource) throws Exception {
-        SqlSessionFactoryBean sessionFactory = new SqlSessionFactoryBean();
-        sessionFactory.setDataSource(dataSource);
-        sessionFactory.setFailFast(true);
-        return sessionFactory.getObject();
+
+        // データソースを設定
+        SqlSessionFactoryBean factoryBean = new SqlSessionFactoryBean();
+        factoryBean.setDataSource(dataSource);
+        factoryBean.setFailFast(true);
+
+        // アンダースコアをCamelCaseに変換
+        SqlSessionFactory factory = factoryBean.getObject();
+        factory.getConfiguration().setMapUnderscoreToCamelCase(true);
+
+        return factory;
     }
 }

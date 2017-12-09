@@ -47,7 +47,7 @@ public class RequestLoggingInterceptor {
         }
 
         // ログを出力
-        log.debug(LogId.D0001, getRequestMessage(joinPoint));
+        log.debug(LogId.D_CMN_REQ, getRequestMessage(joinPoint));
     }
 
     /**
@@ -59,7 +59,7 @@ public class RequestLoggingInterceptor {
     @AfterThrowing("within(jp.co.humane.sample.api..*) && @annotation(org.springframework.web.bind.annotation.ResponseBody)")
     public void afterThrowing(JoinPoint joinPoint) {
         // ログを出力
-        log.info(LogId.D0001, getRequestMessage(joinPoint));
+        log.info(LogId.I_CMN_ERR_REQ, getRequestMessage(joinPoint));
     }
 
     /**

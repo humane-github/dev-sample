@@ -28,7 +28,7 @@ public class ExceptionResolver {
     @ExceptionHandler(HelloWorldException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public void onServerError(HelloWorldException ex) {
-        log.error(LogId.E0001, ex);
+        log.error(LogId.E_CMN_APP_ERR, ex);
     }
 
     /**
@@ -38,6 +38,6 @@ public class ExceptionResolver {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public void onError(Exception ex) {
-        log.error(LogId.E0002, ex);
+        log.error(LogId.E_CMN_OTHER_ERR, ex);
     }
 }
