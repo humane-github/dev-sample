@@ -1,16 +1,17 @@
 package jp.co.humane.sample.common.exception;
 
 /**
- * サンプルの例外クラス。
+ * 業務例外クラス。
+ * 詳細な例外を作る際は本クラスを継承すること。
  * @author terada
  *
  */
-public class HelloWorldException extends RuntimeException {
+public class ApplicationException extends RuntimeException {
 
     /**
      * デフォルトコンストラクタ。
      */
-    public HelloWorldException() {
+    public ApplicationException() {
         super();
     }
 
@@ -18,7 +19,7 @@ public class HelloWorldException extends RuntimeException {
      * メッセージ指定ありのコンストラクタ。
      * @param message メッセージ。
      */
-    public HelloWorldException(String message) {
+    public ApplicationException(String message) {
         super(message);
     }
 
@@ -26,7 +27,7 @@ public class HelloWorldException extends RuntimeException {
      * 例外指定ありのコンストラクタ。
      * @param ex 例外。
      */
-    public HelloWorldException(Throwable ex) {
+    public ApplicationException(Throwable ex) {
         super(ex);
     }
 
@@ -35,7 +36,7 @@ public class HelloWorldException extends RuntimeException {
      * @param message メッセージ。
      * @param ex 例外。
      */
-    public HelloWorldException(String message, Throwable ex) {
+    public ApplicationException(String message, Throwable ex) {
         super(message, ex);
     }
 

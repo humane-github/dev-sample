@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jp.co.humane.sample.common.exception.HelloWorldException;
+import jp.co.humane.sample.common.exception.ApplicationException;
 import jp.co.humane.sample.orm.dao.AccountDAO;
 import jp.co.humane.sample.orm.dto.AccountDTO;
 import jp.co.humane.sample.service.HelloWorldService;
@@ -38,7 +38,7 @@ public class HelloWorldServiceImpl implements HelloWorldService {
             account.setName(name);
             int cnt = dao.add(account);
             if (1 != cnt) {
-                throw new HelloWorldException("アカウント登録に失敗");
+                throw new ApplicationException("アカウント登録に失敗");
             }
             return "登録しました";
         }
@@ -48,7 +48,7 @@ public class HelloWorldServiceImpl implements HelloWorldService {
         account.setName(name);
         int cnt = dao.update(account);
         if (1 != cnt) {
-            throw new HelloWorldException("アカウント更新に失敗");
+            throw new ApplicationException("アカウント更新に失敗");
         }
         return message;
     }

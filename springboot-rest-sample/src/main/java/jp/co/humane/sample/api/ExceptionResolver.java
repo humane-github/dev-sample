@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 import jp.co.humane.sample.common.consts.LogId;
-import jp.co.humane.sample.common.exception.HelloWorldException;
+import jp.co.humane.sample.common.exception.ApplicationException;
 
 /**
  * 例外処理をハンドリングする。
@@ -25,9 +25,9 @@ public class ExceptionResolver {
      * HelloWorldException例外が発生した場合は500(サーバエラー)を返す。
      * @param ex 例外。
      */
-    @ExceptionHandler(HelloWorldException.class)
+    @ExceptionHandler(ApplicationException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public void onServerError(HelloWorldException ex) {
+    public void onServerError(ApplicationException ex) {
         log.error(LogId.E_CMN_APP_ERR, ex);
     }
 

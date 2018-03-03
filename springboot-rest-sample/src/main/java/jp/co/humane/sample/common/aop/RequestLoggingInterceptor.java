@@ -17,7 +17,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jp.co.humane.sample.common.consts.LogId;
-import jp.co.humane.sample.common.exception.HelloWorldException;
+import jp.co.humane.sample.common.exception.ApplicationException;
 
 /**
  * リクエスト情報をログに出力する。
@@ -81,7 +81,7 @@ public class RequestLoggingInterceptor {
             try {
                 return mapper.writeValueAsString(obj);
             } catch (JsonProcessingException e) {
-                throw new HelloWorldException(e);
+                throw new ApplicationException(e);
             }
         }).collect(Collectors.toList());
 
