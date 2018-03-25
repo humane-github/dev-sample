@@ -1,0 +1,284 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <title>DTO生成</title>
+</head>
+<body>
+  ↓ここにDTO生成対象のExcelの表（ヘッダ含む）を貼り付けてください。<br/>
+  <textarea id="data" style="width: 100%; height: 10em; border: solid 1px black;"></textarea>
+  <br/>
+  <br/>
+  <button onclick="createDto()">DTO生成</button><br/>
+  <br/>
+  DTO：<br/>
+  <textarea id="dto" style="width: 100%; height: 10em;"></textarea>
+  
+  <script>
+    
+    // ヘッダとキーの対応
+    var NAME_MAP = {
+      "名前":         "name",
+      "パラメータ名": "paramName",
+      "属性":         "type",
+      "長さ(min)":    "min",
+      "長さ(max)":    "max",
+      "必須":         "required",
+      "書式":         "format"
+    };
+    
+    // 属性とjavaの型の対応
+    var TYPE_MAP = {
+      "文字列":       "String",
+      "配列":         "List<?>",
+      "数値(int)":    "Integer",
+      "数値(long)":   "Long",
+      "数値(double)": "BigDecimal",
+      "日時":         "String",
+      "bool":         "Boolean",
+      "バイナリ":     "MultipartFile",
+      "オブジェクト": "Object"
+    };
+  
+    // 書式名とアノテーションの対応
+    var FORMAT_MAP = {
+      "半角数字":   "@Numeric",
+      "半角英数字": "@AlphaNumeric",
+      "全角":       "@Wide"
+    };
+  
+    // インデント
+    var INDENT = '    ';
+  
+    // フィールドのテンプレート
+    var FIELD_TMPL = INDENT + "/** {comment} */\n"
+                   + "{annotations}"
+                   + INDENT + "private {type} {name} = null;\n\n";
+  
+    // CSVデータからDTOを作成する
+    function createDto() {
+      var dtoText = document.getElementById('dto');
+      dtoText.value = '';
+      
+      // CSVデータをオブジェクトの配列に変換
+      var data = document.getElementById('data').value;
+      var csvRowArr = csv2arr(data, "\t", NAME_MAP);
+      
+      // オブジェクトをJavaフィールド情報に変換
+      var fieldArr = [];
+      csvRowArr.forEach(function(csvRow) {
+        fieldArr.push(csv2field(csvRow));
+      });
+      
+      // フィールド情報を生成
+      var outText = '';
+      fieldArr.forEach(function(param) {
+        outText += createFieldCode(param);
+      });
+      
+      dtoText.value = outText;
+      
+    }
+    
+    // CSVデータをオブジェクトの配列にする
+    //    csv: CSVテキスト
+    //    sep: セパレータ
+    //    nameMap: ヘッダ文字列とオブジェクトのキーの対応マップ
+    function csv2arr(csv, sep, nameMap) {
+      
+      sep = (sep == null) ? ',' : sep;
+      nameMap = (nameMap == null) ? {} : nameMap;
+      
+      // 末尾の改行を除去
+      if (csv.endsWith("\n")) {
+        csv = csv.substr(0, csv.length - 1);
+      }
+      var lines = csv.split("\n");
+      
+      // ヘッダ情報からキーを作成
+      var cols = lines[0].split(sep);
+      var keys = [];
+      cols.forEach(function(val) {
+        var key = val;
+        if (nameMap[val]) {
+          key = nameMap[val];
+        }
+        keys.push(key);
+      });
+      
+      // データ情報を作成
+      var objArr = [];
+      for (var i = 1; i < lines.length; i++) {
+        cols = lines[i].split(sep);
+        var obj = {};
+        cols.forEach(function(val, j) {
+          obj[keys[j]] = val;
+        });
+        objArr.push(obj);
+      }
+      
+      return objArr;
+    }
+    
+    // CSV情報をjavaのフィールド情報に変換する
+    function csv2field(csvRow) {
+      
+      var type = TYPE_MAP[csvRow.type];
+      var annotations = [];
+      
+      // 必須チェックのアノテーションを追加
+      if (csvRow.required === '〇' || csvRow.required === '○') {
+        annotations.push('@NotNull');
+      }
+      
+      // 長さのアノテーションを追加
+      var lengthAnnotations = createLengthAnnotation(type, csvRow.min, csvRow.max);
+      annotations = annotations.concat(lengthAnnotations);
+      
+      // 書式のアノテーションを追加
+      var formatAnnotations = createFormatAnnotation(csvRow.type, csvRow.format);
+      annotations = annotations.concat(formatAnnotations);
+      
+      // Listには@Validを追加する
+      if ('List<?>' === type) {
+        annotations.push('@Valid');
+      }
+      
+      return {
+        comment: csvRow.name,
+        name: csvRow.paramName,
+        type: type,
+        annotations: annotations,
+        rawData: csvRow
+      };
+    }
+    
+    // 長さのアノテーションを作成する
+    function createLengthAnnotation(type, min, max) {
+      var minmax = [min, max].map(function(val) {
+        if (isBlank(val)) {
+          return null;
+        } else {
+          if (!val.match(/^[0-9]+$/)) {
+            throw("長さの指定が不正です。[" + val + "]");
+          }
+          return val;
+        }
+      });
+      min = minmax[0];
+      max = minmax[1];
+      if (null === min && null === max) {
+        return [];
+      }
+      
+      var annotation = [];
+      switch (type) {
+      case 'String':
+      case 'Date':
+        var params = [];
+        if (min) {
+          params.push('min = ' + min);
+        }
+        if (max) {
+          params.push('max = ' + max);
+        }
+        annotation.push('@Length(' + params.join(', ') + ')');
+        break;
+      
+      case 'List<?>':
+        params = [];
+        if (min) {
+          params.push('min = ' + min);
+        }
+        if (max) {
+          params.push('max = ' + max);
+        }
+        annotation.push('@Size(' + params.join(', ') + ')');
+        break;
+      
+      case 'Integer':
+      case 'Long':
+        if (min) {
+          annotation.push('@Min(' + min + ')');
+        }
+        if (max) {
+          annotation.push('@Max(' + max + ')');
+        }
+        break;
+      
+      case 'BigDecimal':
+        if (min) {
+          annotation.push('@DecimalMin("' + min + '")');
+        }
+        if (max) {
+          annotation.push('@DecimalMax("' + max + '")');
+        }
+        break;
+        
+      default:
+        throw(type + 'に対する長さの指定はできません。[min=' + min + ',max=' + max + ']');
+      }
+      
+      return annotation;
+    }
+    
+    // 書式のアノテーションを作成する
+    function createFormatAnnotation(type, format) {
+    
+      if (isBlank(format)) {
+        return [];
+      }
+      
+      var annotation = [];
+      switch(type) {
+      
+      case '日時':
+        annotation.push('@DateFormat(format = "' + format + '")');
+        break;
+      
+      case '文字列':
+        var mapped = FORMAT_MAP[format];
+        if (mapped == null) {
+          throw('[' + format + ']の書式は未定義です。');
+        }
+        annotation.push(mapped);
+        break;
+        
+      default:
+        throw('文字列・日時以外では書式を指定できません。[' + csvRow.format + ']');
+      }
+      
+      return annotation;
+    }
+    
+    // フィールド定義のコードを作成する
+    function createFieldCode(param) {
+      
+      var annotations = '';
+      param.annotations.forEach(function(text) {
+        annotations += INDENT + text + "\n";
+      });
+      
+      return FIELD_TMPL.replace(/\{comment\}/g, param.comment)
+                       .replace(/\{annotations\}/g, annotations)
+                       .replace(/\{type\}/g, param.type)
+                       .replace(/\{name\}/g, param.name);
+    }
+    
+    // 要素が空か否かを判定する
+    function isBlank(value) {
+      if (null == value) {
+        return true;
+      }
+      if ('' === value) {
+        return true;
+      }
+      if ('-' === value) {
+         return true;
+      }
+      return false;
+    }
+    
+  </script>
+</body>
+</html>

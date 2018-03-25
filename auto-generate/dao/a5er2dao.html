@@ -1,0 +1,374 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <title>DAO生成</title>
+</head>
+<body>
+  ↓ここにDAO生成対象のテーブル定義書（エンティティ情報、カラム情報）を貼り付けてください。<br/>
+  <div id="data" contentEditable="true" style="width: 100%; height: 12em; border: solid 1px black; overflow: scroll;"></div>
+  <br/>
+  <br/>
+  <button onclick="createDao()">DAO生成</button><br/>
+  <br/>
+  <div style="width: 49%; float: left;">
+    DTO：<br/>
+    <textarea id="dto" style="width: 100%; height: 15em;"></textarea>
+  </div>
+  <div style="width: 49%; float: right;">
+    DAO：<br/>
+    <textarea id="dao" style="width: 100%; height: 15em;"></textarea>
+  </div>
+  
+  <script>
+    
+    // 属性とjavaの型の対応
+    var TYPE_MAP = {
+      "文字列":   "String",
+      "bool":     "Boolean",
+      "配列":     "List<?>",
+      "バイナリ": "MultipartFile"
+    };
+  
+    // インデント
+    var INDENT = '    ';
+  
+    // DTOのテンプレート
+    var DTO_TMPL1 = "import java.util.Date;\n\n"
+                  + "/**\n"
+                  + " * {classComment}DTO\n"
+                  + " */\n"
+                  + "public class {className}DTO extends BaseDTO {\n\n";
+    var DTO_TMPL2 = INDENT + "/** {comment} */\n"
+                  + INDENT + "private {type} {name} = null;\n\n";
+    var DTO_TMPL3 = INDENT + "/** \n"
+                  + INDENT + " * デフォルトコンストラクタ\n"
+                  + INDENT + " */\n"
+                  + INDENT + "public {className}DTO() {\n"
+                  + INDENT + INDENT + "super();\n"
+                  + INDENT + "}\n"
+                  + "}";
+
+    // DAOのテンプレート
+    var DAO_TMPL1 = "import java.util.List;\n"
+                  + "import org.apache.ibatis.annotations.Select;\n"
+                  + "import org.apache.ibatis.annotations.Update;\n"
+                  + "import org.apache.ibatis.annotations.Insert;\n"
+                  + "import org.apache.ibatis.annotations.Delete;\n\n"
+                  + "/**\n"
+                  + " * {classComment}DAO\n"
+                  + " */\n"
+                  + "public interface {className}DAO {\n\n"
+                  + INDENT + "/** \n"
+                  + INDENT + " * {classComment}を全レコードを取得する。\n"
+                  + INDENT + " * @return {classComment}の全レコード。\n"
+                  + INDENT + " */\n"
+                  + INDENT + "@Select({\n"
+                  + INDENT + INDENT + "\"SELECT\",\n"
+                  + "{columns}"
+                  + INDENT + INDENT + "\"FROM\",\n"
+                  + INDENT + INDENT + "  \"{tableName}\"\n"
+                  + INDENT + "})\n"
+                  + INDENT + "public List<{className}DTO> selectAll();\n\n"
+                  + INDENT + "/** \n"
+                  + INDENT + " * {classComment}を1レコードを取得する。\n"
+                  + INDENT + " * @param dto 検索条件(PKのフィールドを使用)。\n"
+                  + INDENT + " * @return {classComment}の1レコード。存在しない場合はnull。\n"
+                  + INDENT + " */\n"
+                  + INDENT + "@Select({\n"
+                  + INDENT + INDENT + "\"SELECT\",\n"
+                  + "{columns}"
+                  + INDENT + INDENT + "\"FROM\",\n"
+                  + INDENT + INDENT + "  \"{tableName}\",\n"
+                  + INDENT + INDENT + "\"WHERE\",\n"
+                  + "{pkCondition}"
+                  + INDENT + "})\n"
+                  + INDENT + "public {className}DTO selectOne({className}DTO dto);\n\n"
+                  + INDENT + "/** \n"
+                  + INDENT + " * {classComment}を登録する。\n"
+                  + INDENT + " * @param 登録レコード情報。\n"
+                  + INDENT + " * @return 登録レコード数。\n"
+                  + INDENT + " */\n"
+                  + INDENT + "@Insert({\n"
+                  + INDENT + INDENT + "\"INSERT INTO {tableName}\",\n"
+                  + INDENT + INDENT + "\"(\",\n"
+                  + "{columns}"
+                  + INDENT + INDENT + "\")\",\n"
+                  + INDENT + INDENT + "\"VALUES\",\n"
+                  + INDENT + INDENT + "\"(\",\n"
+                  + "{values}"
+                  + INDENT + INDENT + "\")\",\n"
+                  + INDENT + "})\n"
+                  + INDENT + "public int insert({className}DTO dto);\n\n"
+                  + INDENT + "/** \n"
+                  + INDENT + " * {classComment}を更新する。\n"
+                  + INDENT + " * @param dto 更新対象(PKのフィールドを使用)。\n"
+                  + INDENT + " * @return 更新レコード数。\n"
+                  + INDENT + " */\n"
+                  + INDENT + "@Update({\n"
+                  + INDENT + INDENT + "\"UPDATE {tableName}\",\n"
+                  + INDENT + INDENT + "\"SET\",\n"
+                  + "{nonPkValues}"
+                  + INDENT + INDENT + "\"WHERE\",\n"
+                  + INDENT + INDENT + "\"(\",\n"
+                  + "{pkCondition}"
+                  + INDENT + INDENT + "\")\",\n"
+                  + INDENT + "})\n"
+                  + INDENT + "public int update({className}DTO dto);\n\n"
+                  + INDENT + "/** \n"
+                  + INDENT + " * {classComment}を削除する。\n"
+                  + INDENT + " * @param dto 削除対象(PKのフィールドを使用)。\n"
+                  + INDENT + " * @return 削除レコード数。"
+                  + INDENT + " */\n"
+                  + INDENT + "@Delete({\n"
+                  + INDENT + INDENT + "\"DELETE FROM {tableName}\",\n"
+                  + INDENT + INDENT + "\"WHERE\",\n"
+                  + "{pkCondition}"
+                  + INDENT + "})\n"
+                  + INDENT + "public int delete({className}DTO dto);\n\n"
+                  + "}";
+                  
+    // HTMLデータからDAOを作成する
+    function createDao() {
+    
+      var ddlInfo = getDdlInfo();
+      var defInfo = ddl2java(ddlInfo);
+      
+      var dtoCode = getDtoCode(defInfo);
+      var daoCode = getDaoCode(defInfo);
+      
+      document.getElementById('dto').value = dtoCode;
+      document.getElementById('dao').value = daoCode;
+      
+    }
+    
+    // 貼り付けられた情報をオブジェクト型として取得する
+    function getDdlInfo() {
+      
+      // テーブル情報を取得
+      var data = document.getElementById('data');
+      var entityTable = getTable(data, 'エンティティ情報');
+      var columnTable = getTable(data, 'カラム情報');
+
+      // 定義情報を取得
+      var defData = {entity: {}, column: []};
+      getEntityInfo(defData.entity, entityTable);
+      getColumnInfo(defData.column, columnTable);
+      
+      return defData;
+    }
+    
+    // 指定要素の下に存在する指定キャプションを持つテーブルを取得する。
+    //    elm:     要素
+    //    caption: キャプション
+    function getTable(elm, caption) {
+    
+      var tables = elm.getElementsByTagName('table');
+      for (var i = 0; i < tables.length; i++) {
+        var captionText = tables[i].getElementsByTagName('caption')[0].innerText;
+        if (captionText == caption) {
+          return tables[i];
+        }
+      }
+      throw(caption + 'のテーブルが見つかりませんでした');
+    }
+    
+    // テーブルから必要な情報を抽出してエンティティ情報に追加する
+    //    entity: エンティティ情報
+    //    table:  エンティティ情報テーブル
+    function getEntityInfo(entity, table) {
+    
+      for (var i = 0; i < table.rows.length; i++) {
+        var row = table.rows[i];
+        
+        for (var j = 0; j < row.cells.length; j++) {
+          var val = row.cells[j].innerText;
+          var itemName = null;
+          if (val === '論理エンティティ名') {
+            itemName = 'namel';
+          } else if (val === '物理エンティティ名') {
+            itemName = 'namep';
+          }
+          if (itemName) {
+            entity[itemName] = row.cells[j+1].innerText;
+            j++;
+          }
+        }
+      }
+    }
+    
+    // テーブルから必要な情報を抽出してカラム情報配列に追加する
+    //    columnArr: カラム情報配列
+    //    table:     カラム情報テーブル
+    function getColumnInfo(columnArr, table) {
+    
+      var itemName = ['no', 'namel', 'namep', 'type', 'notnull'];
+    
+      for (var i = 1; i < table.rows.length; i++) {
+        var row = table.rows[i];
+        var item = {};
+        for (var j = 1; j < 5; j++) {
+          item[itemName[j]] = row.cells[j].innerText;
+        }
+        columnArr.push(item);
+      }
+    }
+    
+    
+    // DDL情報をjavaで利用する形式に変換する
+    //   ddlInfo : DDL情報
+    function ddl2java(ddlInfo) {
+    
+      var javaData = {
+        tableName: ddlInfo.entity.namep.trim(),
+        className: snake2camel('_' + ddlInfo.entity.namep).trim(),
+        classComment: ddlInfo.entity.namel.trim(),
+        fields: []
+      };
+      
+      ddlInfo.column.forEach(function(col) {
+        javaData.fields.push(getFieldData(col));
+      });
+      
+      // PKが指定されていない場合はすべてPKとする
+      var hasPK = false;
+      javaData.fields.forEach(function(field) {
+        if (field.isPK) {
+          hasPK = true;
+        }
+      });
+      if (!hasPK) {
+        javaData.fields.forEach(function(field) {
+          field.isPK = true;
+        });
+      }
+      return javaData;
+    }
+    
+    // カラム情報からフィールド情報を取得する
+    //   col : カラム情報
+    function getFieldData(col) {
+      var field = {};
+      field.name = snake2camel(col.namep);
+      field.comment = col.namel;
+      field.type = getJavaType(col.type);
+      field.isPK = col.notnull.includes('(PK)');
+      field.column = col.namep;
+      field.jdbcType = getJdbcType(col.type);
+      return field;
+    }
+    
+    // DBの型からjavaの型を取得する
+    //   type : DBの型
+    function getJavaType(type) {
+      if (type.startsWith('varchar')) {
+        return 'String';
+      }
+      if (type.startsWith('char')) {
+        return 'String';
+      }
+      if (type === 'boolean') {
+        return 'Boolean';
+      }
+      if (type === 'timestamp') {
+        return 'Date';
+      }
+      throw '未定義の型です：' + type;
+    }
+    
+    // DBの型からJDBCの型を取得する。
+    //    type : DBの型
+    function getJdbcType(type) {
+      if (type.startsWith('varchar')) {
+        return 'VARCHAR';
+      }
+      if (type.startsWith('char')) {
+        return 'CHAR';
+      }
+      if (type === 'boolean') {
+        return 'BOOLEAN';
+      }
+      if (type === 'timestamp') {
+        return 'TIMESTAMP';
+      }
+      throw '未定義の型です：' + type;
+    }
+    
+    // 定義情報からDTOのソースコードを生成する
+    //   defInfo : 定義情報
+    function getDtoCode(defInfo) {
+      
+      var code = DTO_TMPL1.replace(/\{classComment\}/g, defInfo.classComment)
+                          .replace(/\{className\}/g, defInfo.className);
+      
+      defInfo.fields.forEach(function(field) {
+        code += DTO_TMPL2.replace(/\{comment\}/g, field.comment)
+                         .replace(/\{type\}/g, field.type)
+                         .replace(/\{name\}/g, field.name);
+      });
+      
+      code += DTO_TMPL3.replace(/\{className\}/g, defInfo.className);
+      return code;
+    }
+    
+    // 定義情報からDAOのソースコードを生成する
+    //   defInfo : 定義情報
+    function getDaoCode(defInfo) {
+      
+      var repeatIndent = INDENT + INDENT + "  ";
+      
+      var columnArr = defInfo.fields.map(function(field) {return field.column;});
+      var columns = repeatSql(repeatIndent, columnArr, ",");
+      
+      var valueArr = defInfo.fields.map(function(field) {return "#{" + field.name + ", jdbcType=" + field.jdbcType + "}";});
+      var values = repeatSql(repeatIndent, valueArr, ",");
+      
+      var pkCondArr = defInfo.fields
+                              .filter(function(field) {return field.isPK;})
+                              .map(function(field) {return field.column + ' = #{' + field.name + ', jdbcType=' + field.jdbcType + '}';});
+      var pkCondition = repeatSql(repeatIndent, pkCondArr, " AND");
+      
+      var nonPkValueArr = defInfo.fields
+                                 .filter(function(field) {return !(field.isPK);})
+                                 .map(function(field) {return field.column + " = #{" + field.name + ", jdbcType=" + field.jdbcType + "}";});
+      if (0 == nonPkValueArr.length) {
+        nonPkValueArr = defInfo.fields.map(function(field) {return field.column + " = #{" + field.name + ", jdbcType=" + field.jdbcType + "}";});
+      }
+      var nonPkValues = repeatSql(repeatIndent, nonPkValueArr, ",");
+      
+      var code = DAO_TMPL1.replace(/\{classComment\}/g, defInfo.classComment)
+                          .replace(/\{className\}/g, defInfo.className)
+                          .replace(/\{columns\}/g, columns)
+                          .replace(/\{tableName\}/g, defInfo.tableName)
+                          .replace(/\{pkCondition\}/g, pkCondition)
+                          .replace(/\{values\}/g, values)
+                          .replace(/\{nonPkValues\}/g, nonPkValues);
+
+      return code;
+    }
+    
+    // スネークケースをキャメルケースに変換する
+    function snake2camel(text) {
+      return text.replace(/\_(.)/g, function(match) {
+        return match.charAt(1).toUpperCase();
+      });
+    }
+
+    // SQLの繰り返し文字列を生成する
+    //   indent : インデント
+    //   array  : 繰り返す要素
+    //   sep    : セパレータ
+    function repeatSql(indent, array, sep) {
+      var retVal = '';
+      for (var i = 0; i < array.length; i++) {
+        if (i === array.length - 1) {
+          sep = '';
+        }
+        retVal += indent + "\"" + array[i] + sep + "\",\n";
+      }
+      return retVal;
+    }
+    
+  </script>
+</body>
+</html>
